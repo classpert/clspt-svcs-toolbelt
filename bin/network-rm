@@ -1,0 +1,12 @@
+#!/bin/bash
+export DOCKER_NETWORK=$1;
+
+network=$(docker network ls | grep $DOCKER_NETWORK | cut -f4 -d' ');
+
+if [ -z ${network} ]; then
+  echo "Network $DOCKER_NETWORK does not exist, skipping";
+else
+  echo "Network $(docker network rm $DOCKER_NETWORK) removed";
+fi;
+
+exit;

@@ -1,0 +1,9 @@
+#!/bin/bash
+export MAKE_TASK=$1;
+export ENV=$2;
+deps_dir=$(pwd)/depends-on;
+for service in $(ls ./depends-on)
+do
+  cd ${deps_dir}/${service};
+  ENV=$ENV make -s $MAKE_TASK;
+done

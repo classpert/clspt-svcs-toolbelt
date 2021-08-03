@@ -1,0 +1,10 @@
+#!/bin/bash
+export DOCKER_NETWORK=$1;
+
+network=$(docker network ls | grep $DOCKER_NETWORK | cut -f4 -d' ');
+
+if [ -z ${network} ]; then
+  echo "Network $DOCKER_NETWORK created: $(docker network create $DOCKER_NETWORK)";
+else
+  echo "Network $DOCKER_NETWORK exists, skipping";
+fi;

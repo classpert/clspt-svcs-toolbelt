@@ -1,0 +1,34 @@
+#!/bin/bash
+export DOLLAR='$';
+export APP_NAME=$1;
+export ENV=$2;
+
+context_dir=$(pwd)
+dc_files_dir=$context_dir/dc-template-files
+envs_dir=$context_dir/envs
+deps_dir=$context_dir/depends-on
+
+mkdir -p $dc_files_dir
+mkdir -p $envs_dir
+mkdir -p $deps_dir
+
+notice=<<- COMMENT
+# Don't change this file directly, instead use its counterpart located at [dc-template-files] and run [make env-setup]"
+COMMENT
+
+if [ ! -f docker-compose.$ENV.yml ]; then
+  echo -e "Generating docker-compose.$ENV.yml file ...";
+  envsubst < $dc_files_dir/docker-compose.$ENV.yml.template > docker-compose.$ENV.yml
+  echo -e "$notice\n$(cat docker-compose.$ENV.yml)" > docker-compose.$ENV.yml
+fi
+
+if [ ! -f docker-compose.base.yml ]; then
+  echo -e "Generating docker-compose.base.yml file ...";
+  envsubst < $dc_files_dir/docker-compose.base.yml.template > docker-compose.base.yml
+  echo -e "$notice\n$(cat docker-compose.base.yml)" > docker-compose.base.yml
+fi
+
+if [ ! -f "$envs_dir/local.env" ]; then
+  echo -e "Generating envs/local.env file ...";
+  cp $envs_dir/dev.env $envs_dir/local.env
+fi
