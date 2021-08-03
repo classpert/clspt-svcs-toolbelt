@@ -21,8 +21,6 @@ Commands:
   destroy       destroy project using [service-name]
 "
 
-repo="https://github.com/classpert/clspt-svcs-toolbelt/archive/refs/tags/latest.tar.gz";
-
 # docker-compose meta files
 read -r -d '' DC_BASE_TPL <<-EOF
 version: '3.7'
@@ -35,11 +33,10 @@ read -r -d '' DC_DEV_TPL <<-EOF
 version: '3.7'
 services:
   \${APP_NAME}:
-    image: \${DOLLAR}{APP_IMAGE}
-    network:
+    networks:
       - clspt.dev
 networks:
-  clspt.dev
+  clspt.dev:
     external: true
     name: clspt.dev
 EOF
@@ -48,11 +45,10 @@ read -r -d '' DC_TEST_TPL <<-EOF
 version: '3.7'
 services:
   \${APP_NAME}:
-    image: \${DOLLAR}{APP_IMAGE}
-    network:
+    networks:
       - clspt.test
 networks:
-  clspt.test
+  clspt.test:
     external: true
     name: clspt.test
 EOF
@@ -97,7 +93,7 @@ function create_structure {
   read -s option
   if [ $option == "Y" ]; then
     touch $svcname/Dockerfile
-    touch $svcname/.docker-image-depends-on-files
+    echo "Dockerfile" > $svcname/.docker-image-depends-on-files
     printf "${GREEN}Created files\n"
     printf "${NORMAL}${root_dir}/Dockerfile\n"
     printf "${NORMAL}${root_dir}/.docker-image-depends-on-files\n"
@@ -138,24 +134,32 @@ function create_docker_compose_test_template_file() {
 }
 
 function command_update_svcs_core {
-  repo="git@github.com:classpert/clspt-svcs-toolbelt.git"
+  repo="git@github.com:classpert/svcs-core.git"
   build_dir=/tmp/svcs-core
-  root_dir=$(pwd)/$svcname
+  install_dir=$1;
 
   printf "${GREEN}Cloning svcs-core into ${build_dir}${NORMAL}...\n"
   git clone $repo --depth=1 $build_dir
+  mv $build_dir/Makefile $build_dir/Makefile.envsubst
+  envsubst "$ENVSUBST_VARS" < $build_dir/Makefile.envsubst > $build_dir/Makefile
 
-  cp $build_dir/.gitignore $svcname/
-  printf "${GREEN}Created file\n"
-  printf "${NORMAL}${root_dir}/.gitignore\n"
+  rm $build_dir/Makefile.envsubst
+  rm -rf $build_dir/.git
 
-  envsubst "$ENVSUBST_VARS" < $build_dir/Makefile > $svcname/Makefile
-  printf "${GREEN}Created file\n"
-  printf "${NORMAL}${root_dir}/Makefile\n"
+  if [ -f $install_dir/Makefile ] || [ -e $install_dir/core-bin ]; then
+    printf "${RED}This operation will destroy the following files: Makefile, core-bin/\n${NORMAL}"
+    printf "${YELLOW}Update svcs-core? Type [Y/n]\n"
+    read option
+    if [ $option == "Y" ]; then
+      rm -rf ./core-bin
+      rm -f Makefile
+      rm -f .gitignore
+    else
+      exit 0;
+    fi
+  fi
 
-  cp -r $build_dir/bin $svcname/core
-  printf "${GREEN}Created folder\n"
-  printf "${NORMAL}${root_dir}/core\n"
+  cp -r $build_dir/** $install_dir
 
   # Destroy build dir
   rm -rf $build_dir
