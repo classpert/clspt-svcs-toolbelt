@@ -1,0 +1,197 @@
+#!/usr/bin/env bash
+version=0.1.0
+
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+YELLOW=$(tput setaf 3)
+BLUE=$(tput setaf 4)
+MAGENTA=$(tput setaf 5)
+NORMAL=$(tput sgr0)
+
+svcname=$2;
+
+export DOLLAR='$' APP_NAME=$svcname;
+ENVSUBST_VARS='$DOLLAR:$APP_NAME';
+
+USAGE="\
+Usage: clspt-svcs [command] [service-name]
+
+Commands:
+  create        create a new project using [service-name]
+  destroy       destroy project using [service-name]
+"
+
+repo="https://github.com/classpert/clspt-svcs-toolbelt/archive/refs/tags/latest.tar.gz";
+
+# docker-compose meta files
+read -r -d '' DC_BASE_TPL <<-EOF
+version: '3.7'
+services:
+  \${APP_NAME}:
+    image: \${DOLLAR}{APP_IMAGE}
+EOF
+
+read -r -d '' DC_DEV_TPL <<-EOF
+version: '3.7'
+services:
+  \${APP_NAME}:
+    image: \${DOLLAR}{APP_IMAGE}
+    network:
+      - clspt.dev
+networks:
+  clspt.dev
+    external: true
+    name: clspt.dev
+EOF
+
+read -r -d '' DC_TEST_TPL <<-EOF
+version: '3.7'
+services:
+  \${APP_NAME}:
+    image: \${DOLLAR}{APP_IMAGE}
+    network:
+      - clspt.test
+networks:
+  clspt.test
+    external: true
+    name: clspt.test
+EOF
+
+function error {
+  echo -e "$1" >&2
+  exit 1
+}
+
+function usage_help {
+  error "$USAGE"
+}
+
+function create_structure {
+  root_dir=$(pwd)/$svcname
+
+  mkdir -p $svcname
+
+  printf "${GREEN}Created project skeleton\n"
+  printf "${NORMAL}$root_dir\n"
+
+  if [ ! -e $svcname/dc-template-files ]; then
+    mkdir -p $svcname/dc-template-files;
+    printf "${GREEN}Created file\n"
+    printf "${NORMAL}$root_dir/dc-template-files\n"
+  fi
+
+  if [ ! -f $svcname/dc-template-files/docker-compose.base.yml.template ]; then
+    echo "$DC_BASE_TPL" > $svcname/dc-template-files/docker-compose.base.yml.template
+    printf "${GREEN}Created file\n"
+    printf "${NORMAL}$root_dir/dc-template-files/docker-compose.base.yml.template\n"
+  fi
+
+  if [ ! -f $svcname/dc-template-files/docker-compose.dev.yml.template ]; then
+    echo "$DC_DEV_TPL" > $svcname/dc-template-files/docker-compose.dev.yml.template
+    printf "${GREEN}Created file\n"
+    printf "${NORMAL}$root_dir/dc-template-files/docker-compose.dev.yml.template\n"
+  fi
+
+  printf "${YELLOW}Create empty Dockerfile? Type [Y/n]\n"
+  printf "${NORMAL}Type [n] if you'll be using a third-party image in your docker-compose file\n"
+  read -s option
+  if [ $option == "Y" ]; then
+    touch $svcname/Dockerfile
+    touch $svcname/.docker-image-depends-on-files
+    printf "${GREEN}Created files\n"
+    printf "${NORMAL}${root_dir}/Dockerfile\n"
+    printf "${NORMAL}${root_dir}/.docker-image-depends-on-files\n"
+  else
+    printf "${NORMAL}Dockerfile skipped\n"
+  fi
+
+  printf "${YELLOW}Create skeleton for tests? Type [Y/n]\n"
+  read -s option
+  if [ $option == "Y" ]; then
+    if [ ! -f $svcname/dc-template-files/docker-compose.test.yml.template ]; then
+      echo "$DC_TEST_TPL" > $svcname/dc-template-files/docker-compose.test.yml.template
+      printf "${GREEN}Created file\n"
+      printf "${NORMAL}${root_dir}/dc-template-files/docker-compose.test.yml.template\n"
+    fi
+
+    if [ ! -f $svcname/makefiles/test.mk ]; then
+      mkdir -p $svcname/makefiles
+      touch $svcname/makefiles/test.mk
+      printf "${GREEN}Created file\n"
+      printf "${NORMAL}${root_dir}/makefiles/test.mk\n"
+    fi
+  else
+    printf "${NORMAL}Skeleton for tests skipped\n"
+  fi
+}
+
+function create_docker_compose_base_template_file {
+  echo "$DC_BASE_TPL" > $svcname/dc-template-files/docker-compose.base.yml.template
+}
+
+function create_docker_compose_dev_template_file() {
+  echo "$DC_DEV_TPL" > $svcname/dc-template-files/docker-compose.dev.yml.template
+}
+
+function create_docker_compose_test_template_file() {
+  echo "$DC_TEST_TPL" > $svcname/dc-template-files/docker-compose.test.yml.template
+}
+
+function command_update_svcs_core {
+  repo="git@github.com:classpert/clspt-svcs-toolbelt.git"
+  build_dir=/tmp/svcs-core
+  root_dir=$(pwd)/$svcname
+
+  printf "${GREEN}Cloning svcs-core into ${build_dir}${NORMAL}...\n"
+  git clone $repo --depth=1 $build_dir
+
+  cp $build_dir/.gitignore $svcname/
+  printf "${GREEN}Created file\n"
+  printf "${NORMAL}${root_dir}/.gitignore\n"
+
+  envsubst "$ENVSUBST_VARS" < $build_dir/Makefile > $svcname/Makefile
+  printf "${GREEN}Created file\n"
+  printf "${NORMAL}${root_dir}/Makefile\n"
+
+  cp -r $build_dir/bin $svcname/core
+  printf "${GREEN}Created folder\n"
+  printf "${NORMAL}${root_dir}/core\n"
+
+  # Destroy build dir
+  rm -rf $build_dir
+}
+
+function command_create {
+  if [ ! -e $svcname ]; then
+    create_structure $svcname
+    command_update_svcs_core $svcname
+  else 
+    printf "%s\n" "${RED}Project ${svcname} already exists under $(pwd)"
+    printf "%s\n" "${NORMAL}If you want re-create it, run [${YELLOW}clspt-svcs destroy ${svcname}${NORMAL}] or choose a different name"
+  fi
+}
+
+function command_destroy {
+  if [ -e $svcname ]; then
+    printf "${RED}Are you sure you want to remove $svcname?${NORMAL} Type [Y/n] \n${NORMAL}"
+    read -s option
+    if [ $option == "Y" ]; then 
+      printf "Destroying ${svcname}... \n"
+      rm -rf $svcname
+    fi
+  else
+    printf "Nothing to destroy... \n"
+  fi
+}
+
+case $# in
+  0) usage_help;;
+esac
+
+case $1 in
+  --help|-h) echo -e "$USAGE"; exit 0;;
+  create) shift; command_create "$@";;
+  destroy) shift; command_destroy "$@";;
+  update-svcs-core) shift; command_update_svcs_core "$@";;
+  *) echo "Unknown arguments: $*"; usage_help;;
+esac
