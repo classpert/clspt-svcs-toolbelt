@@ -10,10 +10,6 @@ if [ -z "${BASH_VERSION:-}" ]; then
   abort "Bash is required to interpret this script."
 fi
 
-if ! [ -x "$(command -v git)" ]; then
-  abort "Git is required to run this installer."
-fi
-
 # Check if script is run non-interactively (e.g. CI)
 # If it is run non-interactively we should not prompt for passwords.
 if [[ ! -t 0 || -n "${CI-}" ]]; then
