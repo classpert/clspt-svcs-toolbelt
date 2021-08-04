@@ -93,4 +93,5 @@ case ":$PATH:" in
     export PATH=$PATH:$HOME/.local/bin ;
     ;;
 esac
+source $shell_profile
 ohai "Done."
