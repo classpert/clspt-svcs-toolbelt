@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# clspt-svcs create project -d /path/to/project
+
 version=0.1.0
 
 RED=$(tput setaf 1)
@@ -14,7 +16,10 @@ export DOLLAR='$' APP_NAME=$svcname;
 ENVSUBST_VARS='$DOLLAR:$APP_NAME';
 
 USAGE="\
-Usage: clspt-svcs [command] [service-name]
+Usage: clspt-svcs [command] [service-name] [options]
+
+Options:
+  -d            set directory, defaults to ./[service-name]
 
 Commands:
   create        create a new project using [service-name]
@@ -136,7 +141,7 @@ function create_docker_compose_test_template_file() {
 function command_update_svcs_core {
   repo="git@github.com:classpert/svcs-core.git"
   build_dir=/tmp/svcs-core
-  install_dir=$1;
+  install_dir=$2;
 
   printf "${GREEN}Cloning svcs-core into ${build_dir}${NORMAL}...\n"
   git clone $repo --depth=1 $build_dir
@@ -146,20 +151,12 @@ function command_update_svcs_core {
   rm $build_dir/Makefile.envsubst
   rm -rf $build_dir/.git
 
-  if [ -f $install_dir/Makefile ] || [ -e $install_dir/core-bin ]; then
-    printf "${RED}This operation will destroy the following files: Makefile, core-bin/\n${NORMAL}"
-    printf "${YELLOW}Update svcs-core? Type [Y/n]\n"
-    read option
-    if [ $option == "Y" ]; then
-      rm -rf ./core-bin
-      rm -f Makefile
-      rm -f .gitignore
-    else
-      exit 0;
-    fi
-  fi
+  # Destroy current files
+  rm -rf ./core-bin
+  rm -f Makefile
 
-  cp -r $build_dir/** $install_dir
+  # Copy new installation
+  cp -r $build_dir/* $install_dir
 
   # Destroy build dir
   rm -rf $build_dir
@@ -168,8 +165,8 @@ function command_update_svcs_core {
 function command_create {
   if [ ! -e $svcname ]; then
     create_structure $svcname
-    command_update_svcs_core $svcname
-  else 
+    command_update_svcs_core $svcname $svcname
+  else
     printf "%s\n" "${RED}Project ${svcname} already exists under $(pwd)"
     printf "%s\n" "${NORMAL}If you want re-create it, run [${YELLOW}clspt-svcs destroy ${svcname}${NORMAL}] or choose a different name"
   fi
@@ -179,7 +176,7 @@ function command_destroy {
   if [ -e $svcname ]; then
     printf "${RED}Are you sure you want to remove $svcname?${NORMAL} Type [Y/n] \n${NORMAL}"
     read -s option
-    if [ $option == "Y" ]; then 
+    if [ $option == "Y" ]; then
       printf "Destroying ${svcname}... \n"
       rm -rf $svcname
     fi
