@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# clspt-svcs create project -d /path/to/project
-
 version=0.1.0
 
 RED=$(tput setaf 1)
@@ -13,7 +11,6 @@ NORMAL=$(tput sgr0)
 svcname=$2;
 
 export DOLLAR='$' APP_NAME=$svcname;
-ENVSUBST_VARS='$DOLLAR:$APP_NAME';
 
 USAGE="\
 Usage: clspt-svcs [command] [service-name] [options]
@@ -139,12 +136,13 @@ function create_docker_compose_test_template_file() {
 }
 
 function command_update_svcs_core {
+  ENVSUBST_VARS='$DOLLAR:$APP_NAME';
+
   repo="git@github.com:classpert/svcs-core.git"
   build_dir=/tmp/svcs-core
-  install_dir=$2;
 
-  printf "${GREEN}Cloning svcs-core into ${build_dir}${NORMAL}...\n"
   git clone $repo --depth=1 $build_dir
+
   mv $build_dir/Makefile $build_dir/Makefile.envsubst
   envsubst "$ENVSUBST_VARS" < $build_dir/Makefile.envsubst > $build_dir/Makefile
 
@@ -156,7 +154,7 @@ function command_update_svcs_core {
   rm -f Makefile
 
   # Copy new installation
-  cp -r $build_dir/* $install_dir
+  cp -r $build_dir/* $svcname
 
   # Destroy build dir
   rm -rf $build_dir
@@ -164,9 +162,9 @@ function command_update_svcs_core {
 
 function command_create {
   if [ ! -e $svcname ]; then
-    create_structure $svcname
-    command_update_svcs_core $svcname $svcname
-  else
+    create_structure
+    command_update_svcs_core
+  else 
     printf "%s\n" "${RED}Project ${svcname} already exists under $(pwd)"
     printf "%s\n" "${NORMAL}If you want re-create it, run [${YELLOW}clspt-svcs destroy ${svcname}${NORMAL}] or choose a different name"
   fi
@@ -176,7 +174,7 @@ function command_destroy {
   if [ -e $svcname ]; then
     printf "${RED}Are you sure you want to remove $svcname?${NORMAL} Type [Y/n] \n${NORMAL}"
     read -s option
-    if [ $option == "Y" ]; then
+    if [ $option == "Y" ]; then 
       printf "Destroying ${svcname}... \n"
       rm -rf $svcname
     fi
