@@ -29,30 +29,31 @@ version: '3.7'
 services:
   \${APP_NAME}:
     image: \${DOLLAR}{APP_IMAGE}
+    #build:
+    #  context: .
 EOF
 
-read -r -d '' DC_DEV_TPL <<-EOF
+read -r -d '' DC_ENV_TPL <<-EOF
 version: '3.7'
 services:
   \${APP_NAME}:
     networks:
-      - clspt.dev
-networks:
-  clspt.dev:
-    external: true
-    name: clspt.dev
-EOF
+      - \${DOLLAR}{DOCKER_NETWORK}
+    #environment:
+    #  - VIRTUAL_HOST=\${DOLLAR}{APP_NAME}.\${DOLLAR}{DOCKER_NETWORK}
+    #env_file:
+    # - ./envs/${DOLLAR}{ENV}.env
+    #volumes:
+    #  - \${DOLLAR}{APP_NAME}_\${DOLLAR}{DOCKER_NETWORK}:
 
-read -r -d '' DC_TEST_TPL <<-EOF
-version: '3.7'
-services:
-  \${APP_NAME}:
-    networks:
-      - clspt.test
+#volumes:
+#  \${APP_NAME}_\${DOCKER_NETWORK}:
+#    name: \${DOLLAR}{APP_NAME}_\${DOLLAR}{DOCKER_NETWORK}
+
 networks:
-  clspt.test:
+  \${DOCKER_NETWORK}:
     external: true
-    name: clspt.test
+    name: \${DOLLAR}{DOCKER_NETWORK}
 EOF
 
 function error {
@@ -85,7 +86,7 @@ function create_structure {
   fi
 
   if [ ! -f $svcname/dc-template-files/docker-compose.dev.yml.template ]; then
-    echo "$DC_DEV_TPL" > $svcname/dc-template-files/docker-compose.dev.yml.template
+    echo "$DC_ENV_TPL" > $svcname/dc-template-files/docker-compose.dev.yml.template
     printf "${GREEN}Created file\n"
     printf "${NORMAL}$root_dir/dc-template-files/docker-compose.dev.yml.template\n"
   fi
@@ -107,7 +108,7 @@ function create_structure {
   read -s option
   if [ $option == "Y" ]; then
     if [ ! -f $svcname/dc-template-files/docker-compose.test.yml.template ]; then
-      echo "$DC_TEST_TPL" > $svcname/dc-template-files/docker-compose.test.yml.template
+      echo "$DC_ENV_TPL" > $svcname/dc-template-files/docker-compose.test.yml.template
       printf "${GREEN}Created file\n"
       printf "${NORMAL}${root_dir}/dc-template-files/docker-compose.test.yml.template\n"
     fi
