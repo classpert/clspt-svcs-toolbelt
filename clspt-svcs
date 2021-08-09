@@ -35,6 +35,15 @@ services:
     #    - APP_BASE_IMAGE:${DOLLAR}{APP_BASE_IMAGE}
 EOF
 
+read -r -d '' DC_LOCAL_TPL <<-EOF
+#version: '3.7'
+#services:
+#  \${APP_NAME}:
+#    env_file:
+#     - ./envs/local.env
+EOF
+
+
 read -r -d '' DC_ENV_TPL <<-EOF
 version: '3.7'
 services:
@@ -85,6 +94,12 @@ function create_structure {
     echo "$DC_BASE_TPL" > $svcname/dc-template-files/docker-compose.base.yml.template
     printf "${GREEN}Created file\n"
     printf "${NORMAL}$root_dir/dc-template-files/docker-compose.base.yml.template\n"
+  fi
+
+  if [ ! -f $svcname/dc-template-files/docker-compose.local.yml.template ]; then
+    echo "$DC_LOCAL_TPL" > $svcname/dc-template-files/docker-compose.local.yml.template
+    printf "${GREEN}Created file\n"
+    printf "${NORMAL}$root_dir/dc-template-files/docker-compose.local.yml.template\n"
   fi
 
   if [ ! -f $svcname/dc-template-files/docker-compose.dev.yml.template ]; then
