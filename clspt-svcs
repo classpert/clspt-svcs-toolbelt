@@ -31,6 +31,8 @@ services:
     image: \${DOLLAR}{APP_IMAGE}
     #build:
     #  context: .
+    #  args:
+    #    - APP_BASE_IMAGE:${DOLLAR}{APP_BASE_IMAGE}
 EOF
 
 read -r -d '' DC_ENV_TPL <<-EOF
