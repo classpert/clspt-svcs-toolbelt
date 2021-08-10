@@ -32,7 +32,7 @@ services:
 #    build:
 #    context: .
 #    args:
-#      - APP_BASE_IMAGE:\${DOLLAR}APP_BASE_IMAGE
+#      - APP_BASE_IMAGE=\${DOLLAR}APP_BASE_IMAGE
 EOF
 
 read -r -d '' DC_LOCAL_TPL <<-EOF
