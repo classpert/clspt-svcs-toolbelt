@@ -28,19 +28,19 @@ read -r -d '' DC_BASE_TPL <<-EOF
 version: '3.7'
 services:
   \${APP_NAME}:
-    image: \${DOLLAR}{APP_IMAGE}
-    #build:
-    #  context: .
-    #  args:
-    #    - APP_BASE_IMAGE:${DOLLAR}{APP_BASE_IMAGE}
+    image: \${DOLLAR}APP_IMAGE
+#    build:
+#    context: .
+#    args:
+#      - APP_BASE_IMAGE:\${DOLLAR}APP_BASE_IMAGE
 EOF
 
 read -r -d '' DC_LOCAL_TPL <<-EOF
-#version: '3.7'
-#services:
-#  \${APP_NAME}:
+version: '3.7'
+services:
+  \${APP_NAME}:
 #    env_file:
-#     - ./envs/local.env
+#    - ./envs/local.env
 EOF
 
 
@@ -50,21 +50,21 @@ services:
   \${APP_NAME}:
     networks:
       - \${DOLLAR}{DOCKER_NETWORK}
-    #environment:
-    #  - VIRTUAL_HOST=\${DOLLAR}{APP_NAME}.\${DOLLAR}{DOCKER_NETWORK}
-    #env_file:
-    # - ./envs/${DOLLAR}{ENV}.env
-    #volumes:
-    #  - \${DOLLAR}{APP_NAME}_\${DOLLAR}{DOCKER_NETWORK}:
+#    environment:
+#      - VIRTUAL_HOST=\${DOLLAR}APP_NAME.\${DOLLAR}DOCKER_NETWORK
+    env_file:
+      - ./envs/\${DOLLAR}ENV.env
+#    volumes:
+#      - \${DOLLAR}APP_NAME_\${DOLLAR}DOCKER_NETWORK
 
 #volumes:
 #  \${APP_NAME}_\${DOCKER_NETWORK}:
-#    name: \${DOLLAR}{APP_NAME}_\${DOLLAR}{DOCKER_NETWORK}
+#    name: \${DOLLAR}APP_NAME_\${DOLLAR}DOCKER_NETWORK
 
 networks:
   \${DOCKER_NETWORK}:
     external: true
-    name: \${DOLLAR}{DOCKER_NETWORK}
+    name: \${DOLLAR}DOCKER_NETWORK
 EOF
 
 function error {
