@@ -21,7 +21,29 @@ Options:
 Commands:
   create        create a new project using [service-name]
   destroy       destroy project using [service-name]
+  update-core   updates svcs-core for [service-name]
 "
+
+# boilerplate files
+read -r -d '' GITIGNORE_TPL <<-EOF
+.deps.local.toml
+/depends-on/
+/envs/local*
+/makefiles/local.mk
+docker-compose.*.yml
+/src/node_modules/
+.init-lock
+EOF
+
+read -r -d '' TOML_TPL <<-EOF
+# Add depends-on services here, ex.:
+# [svc-db]
+# dir="./depends-on/svc-db"
+EOF
+
+read -r -d '' ENVS_TPL <<-EOF
+# Add your environment variables here
+EOF
 
 # docker-compose meta files
 read -r -d '' DC_BASE_TPL <<-EOF
@@ -86,7 +108,7 @@ function create_structure {
 
   if [ ! -e $svcname/dc-template-files ]; then
     mkdir -p $svcname/dc-template-files;
-    printf "${GREEN}Created file\n"
+    printf "${GREEN}Created directory\n"
     printf "${NORMAL}$root_dir/dc-template-files\n"
   fi
 
@@ -107,6 +129,40 @@ function create_structure {
     printf "${GREEN}Created file\n"
     printf "${NORMAL}$root_dir/dc-template-files/docker-compose.dev.yml.template\n"
   fi
+
+  if [ ! -f $svcname/.gitignore ]; then
+    echo "$GITIGNORE_TPL" > $svcname/.gitignore
+    printf "${GREEN}Created file\n"
+    printf "${NORMAL}$root_dir/.gitignore\n"
+  fi
+
+  if [ ! -f $svcname/.gitignore ]; then
+    echo "$GITIGNORE_TPL" > $svcname/.gitignore
+    printf "${GREEN}Created file\n"
+    printf "${NORMAL}$root_dir/.gitignore\n"
+  fi
+
+  if [ ! -e $svcname/envs ]; then
+    mkdir -p $svcname/envs;
+    printf "${GREEN}Created directory\n"
+    printf "${NORMAL}$root_dir/envs\n"
+  fi
+
+  for e in "dev" "test" "local.dev"; do
+    if [ ! -f $svcname/envs/$e.env ]; then
+      echo "$ENVS_TPL" > $svcname/envs/$e.env
+      printf "${GREEN}Created file\n"
+      printf "${NORMAL}$root_dir/envs/$e.env\n"
+    fi
+  done
+
+  for e in "dev" "test" "local"; do
+    if [ ! -f $svcname/.deps.$e.toml ]; then
+      echo "$TOML_TPL" > $svcname/.deps.$e.toml
+      printf "${GREEN}Created file\n"
+      printf "${NORMAL}$root_dir/.deps.$e.toml\n"
+    fi
+  done
 
   printf "${YELLOW}Create empty Dockerfile? Type [Y/n]\n"
   printf "${NORMAL}Type [n] if you'll be using a third-party image in your docker-compose file\n"
@@ -182,7 +238,7 @@ function command_create {
   if [ ! -e $svcname ]; then
     create_structure
     command_update_svcs_core
-  else 
+  else
     printf "%s\n" "${RED}Project ${svcname} already exists under $(pwd)"
     printf "%s\n" "${NORMAL}If you want re-create it, run [${YELLOW}clspt-svcs destroy ${svcname}${NORMAL}] or choose a different name"
   fi
@@ -192,7 +248,7 @@ function command_destroy {
   if [ -e $svcname ]; then
     printf "${RED}Are you sure you want to remove $svcname?${NORMAL} Type [Y/n] \n${NORMAL}"
     read -s option
-    if [ $option == "Y" ]; then 
+    if [ $option == "Y" ]; then
       printf "Destroying ${svcname}... \n"
       rm -rf $svcname
     fi
@@ -209,6 +265,6 @@ case $1 in
   --help|-h) echo -e "$USAGE"; exit 0;;
   create) shift; command_create "$@";;
   destroy) shift; command_destroy "$@";;
-  update-svcs-core) shift; command_update_svcs_core "$@";;
+  update-core) shift; command_update_svcs_core "$@";;
   *) echo "Unknown arguments: $*"; usage_help;;
 esac
